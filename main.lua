@@ -1,4 +1,4 @@
-WINDOW_WIDTH = 1200
+WINDOW_WIDTH = 1300
 WINDOW_HEIGHT = 700
 
 push = require 'push'
@@ -14,6 +14,8 @@ function love.load()
         vsync = true,
         resizable = true
     })
+
+    --love.window.setVSync(0)
 
     love.graphics.setDefaultFilter("nearest", "nearest")
 
@@ -44,7 +46,7 @@ function love.draw()
     push:apply('start')
     gStateMachine:render()
     world:draw()
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(0, 0, 0)
     love.graphics.print(love.timer.getFPS(), 0, 0)
     push:apply('end')
 end
