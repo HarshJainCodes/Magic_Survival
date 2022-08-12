@@ -1,6 +1,11 @@
 PlayState = Class{__includes = BaseState}
 
+require 'modules/player'
+require 'modules.enemy'
+
 function PlayState:init()
+    math.randomseed(os.time())
+
     self.tileImage = love.graphics.newImage('tile.jpg')
 
     self.map = {}
@@ -8,48 +13,76 @@ function PlayState:init()
     TILE_WIDTH = 100
     TILE_HEIGHT = 100
 
-    for i = 1, 15 do
+    MAPSIZE = 13   -- increasing the mapsize will recude frames
+
+    for i = 1, MAPSIZE do
         local row = {}
-        for j = 1, 15 do
+        for j = 1, MAPSIZE do
+            -- table consists {x position of tile, y position of tile}
             table.insert(row, {TILE_WIDTH * j, TILE_HEIGHT * i})
         end
         table.insert(self.map, row)
     end
 
     -- player
+    self.player = Player(WINDOW_WIDTH/2 - 10, WINDOW_HEIGHT/2 - 10, 20, 20)
 
-    self.player = {}
-    self.player.x = WINDOW_WIDTH / 2 - 10
-    self.player.y = WINDOW_HEIGHT / 2 - 10
+    -- enemy
+    self.enemies = {}
+    self.enemyTimer = 0
+    --table.insert(self.enemies, Enemy(100, 200, 30))
 
+    -- camera
     camera = require 'camera'
     self.camera = camera()
+
+    -- auto shoot
+    self.autoShootTimer = 0
 end
 
 function PlayState:update(dt)
-    if love.keyboard.isDown('w') then
-        self.player.y = self.player.y - math.floor(200 * dt)
-    end
-    if love.keyboard.isDown('s') then
-        self.player.y = self.player.y + math.floor(200 * dt)
-    end
-    if love.keyboard.isDown('a') then
-        self.player.x = self.player.x - math.floor(200 * dt)
-    end
-    if love.keyboard.isDown('d') then
-        self.player.x = self.player.x + math.floor(200 * dt)
-    end    
 
-    local playerXroundedto100 = self.player.x - (self.player.x % 100)
-    local playerYroundedto100 = self.player.y - (self.player.y % 100)
+    self.player:update(dt)
 
-    for x = -7, 7 do
-        for y = -7, 7 do
-            self.map[x + 8][y + 8] = {playerXroundedto100 + x * TILE_WIDTH, playerYroundedto100 + y * TILE_HEIGHT}
+    local playerXroundedto100 = self.player.collider:getX() - 10 - ((self.player.collider:getX() - 10)  % TILE_WIDTH)
+    local playerYroundedto100 = self.player.collider:getY() - 10 - ((self.player.collider:getY() -10) % TILE_HEIGHT)
+
+    -- local noise = love.math.noise(playerXroundedto100 + 0.1, playerYroundedto100 + 0.1)
+    -- print(noise)
+
+    --update the location of every tile
+    for x = -(math.floor(MAPSIZE / 2)), math.floor(MAPSIZE / 2) do
+        for y = -math.floor(MAPSIZE / 2), math.floor(MAPSIZE / 2) do
+            local noise = love.math.noise((playerXroundedto100 + x * TILE_WIDTH) * (playerYroundedto100 + y * TILE_HEIGHT) * 0.00001 + 0.0015)
+            self.map[x + math.ceil(MAPSIZE / 2)][y + math.ceil(MAPSIZE / 2)] = {playerXroundedto100 + x * TILE_WIDTH, playerYroundedto100 + y * TILE_HEIGHT, noise}
         end
     end
 
-    self.camera:lookAt(self.player.x, self.player.y)
+    self.camera:lookAt(self.player.collider:getX() - 10, self.player.collider:getY() - 10)
+
+    -- enemy generation
+    self.enemyTimer = self.enemyTimer + dt
+
+    if self.enemyTimer > 0.5 then
+        -- spawns the enemy in all the directions
+        local enemyDir = math.random(0, 6.28)
+        local enemyX = self.player.collider:getX() + math.cos(enemyDir) * math.max(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
+        local enemyY = self.player.collider:getY() + math.sin(enemyDir) * math.max(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2)
+        table.insert(self.enemies, Enemy(enemyX, enemyY, 30))
+        self.enemyTimer = 0
+    end
+
+    for key, value in pairs(self.enemies) do
+        value:update(dt, self.player.collider)
+    end
+
+
+    -- autoBulletShoot
+    self.autoShootTimer = self.autoShootTimer + dt
+    if self.autoShootTimer > 1 then
+        self.player:autoShootEnemy(self.enemies)
+        self.autoShootTimer = 0
+    end
 end
 
 function PlayState:keypressed(key)
@@ -60,12 +93,24 @@ end
 
 function PlayState:render()
     self.camera:attach()
-    for i = 1, 15 do
-        for j = 1, 15 do
-            love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+    for i = 1, MAPSIZE do
+        for j = 1, MAPSIZE do
+            --love.graphics.setColor(1, 0, 1)
+            --love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            love.graphics.setColor(1, 0, 1)
+            love.graphics.rectangle("line", self.map[i][j][1], self.map[i][j][2],TILE_WIDTH, TILE_HEIGHT)
+            love.graphics.setColor(self.map[i][j][3], self.map[i][j][3], self.map[i][j][3])
+            love.graphics.rectangle("fill", self.map[i][j][1], self.map[i][j][2], TILE_WIDTH, TILE_HEIGHT)
         end
     end
 
-    love.graphics.rectangle("fill", self.player.x, self.player.y, 20, 20)
+    love.graphics.setColor(0.6, 0.2, 0.8)
+    love.graphics.rectangle("fill", self.player.collider:getX() - 10, self.player.collider:getY() - 10, 20, 20)
+    
+    for key, enemy in pairs(self.enemies) do
+        enemy:render()
+    end
+
+    self.player:render()
     self.camera:detach()
 end

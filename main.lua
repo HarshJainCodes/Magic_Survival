@@ -1,4 +1,4 @@
-WINDOW_WIDTH = 1300
+WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 700
 
 push = require 'push'
@@ -14,7 +14,6 @@ function love.load()
         vsync = true,
         resizable = true
     })
-
     --love.window.setVSync(0)
 
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -26,7 +25,10 @@ function love.load()
     gStateMachine:change('play')
 end
 
-world = wf.newWorld(0, 10, false)
+world = wf.newWorld(0, 0, false)
+world:addCollisionClass('player')
+world:addCollisionClass('enemy')
+world:addCollisionClass('bullet', {ignores = {'player'}})
 
 
 function love.resize(w, h)
@@ -45,7 +47,9 @@ end
 function love.draw()
     push:apply('start')
     gStateMachine:render()
-    world:draw()
+
+    --world:draw() does not cooperate with camera so comment the world draw to see the result
+    --world:draw()
     love.graphics.setColor(0, 0, 0)
     love.graphics.print(love.timer.getFPS(), 0, 0)
     push:apply('end')
