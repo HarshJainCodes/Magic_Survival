@@ -16,7 +16,7 @@ function love.load()
     })
     --love.window.setVSync(0)
 
-    love.graphics.setDefaultFilter("nearest", "nearest")
+    --love.graphics.setDefaultFilter("nearest", "nearest")
 
     gStateMachine = StateMachine{
         ['play'] = function () return PlayState() end
@@ -29,6 +29,7 @@ world = wf.newWorld(0, 0, false)
 world:addCollisionClass('player')
 world:addCollisionClass('enemy')
 world:addCollisionClass('bullet', {ignores = {'player'}})
+world:addCollisionClass('electricShield', {ignores = {'player'}})
 
 
 function love.resize(w, h)
@@ -37,6 +38,11 @@ end
 
 function love.keypressed(key)
     gStateMachine.current:keypressed(key)
+end
+
+function love.mousepressed(x, y)
+    x1, y1 = push:toGame(x, y)
+    gStateMachine.current:mousepressed(x1, y1)
 end
 
 function love.update(dt)
@@ -50,7 +56,7 @@ function love.draw()
 
     --world:draw() does not cooperate with camera so comment the world draw to see the result
     --world:draw()
-    love.graphics.setColor(0, 0, 0)
-    love.graphics.print(love.timer.getFPS(), 0, 0)
+    --love.graphics.print(love.timer.getFPS(), 0, 0)
+    --love.graphics.print(collectgarbage("count"))
     push:apply('end')
 end

@@ -1,10 +1,13 @@
 Player = Class{}
 
 function Player:init(x, y, width, height)
+    assert(type(x) == "number", "please provide a number value for x")
     self.collider = world:newRectangleCollider(x, y, width, height)
     self.speed = 400
     self.collider:setCollisionClass('player')
     self.bullets = {}
+    self.currency = 0
+    self.maxCurrency = 100
 end
 
 function Player:shootEnemy(enemy)
@@ -12,7 +15,7 @@ function Player:shootEnemy(enemy)
     local xDir = math.cos(slope)
     local yDir = math.sin(slope)
 
-    local bullet = world:newCircleCollider(self.collider:getX(), self.collider:getY(), 5)
+    local bullet = world:newCircleCollider(self.collider:getX(), self.collider:getY(), 10)
     bullet.xVelo = xDir
     bullet.yVelo = yDir
     bullet.speed = 1000
@@ -29,10 +32,10 @@ function Player:updateBullet(dt, bullet)
         if bullet:enter('enemy') then
             local collision_data = bullet:getEnterCollisionData('enemy')
             collision_data.collider:destroy()
+            self.currency = self.currency + 10
             bullet:destroy()
         end
     end
-    
 end
 
 function Player:autoShootEnemy(enemyTable)
@@ -48,12 +51,12 @@ function Player:autoShootEnemy(enemyTable)
         end
     end
 
+    -- only shoot if enemy is within our range
     if minDistance < WINDOW_HEIGHT * 2 / 3 then
         if targetEnemy[1] ~= nil then
             self:shootEnemy(targetEnemy[1])
-        end    
+        end
     end
-    
 end
 
 function Player:update(dt)
@@ -71,8 +74,15 @@ function Player:update(dt)
         self.collider:setX(self.collider:getX() + math.floor(self.speed * dt))
     end  
 
+    -- update the shot bullet
     for key, bullet in pairs(self.bullets) do
         self:updateBullet(dt, bullet)
+
+        -- this is for the optimisation purpose, remove the bullet if it hit the enemy
+        if bullet.body == nil then
+            print("bullet removed fromt the table")
+            table.remove(self.bullets, key)
+        end
     end
 end
 
@@ -82,4 +92,6 @@ function Player:render()
             love.graphics.circle("fill", value:getX(), value:getY(), 5)
         end
     end
+
+
 end

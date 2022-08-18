@@ -12,6 +12,10 @@ function BaseState:keypressed()
     
 end
 
+function BaseState:mousepressed(x, y)
+    
+end
+
 function BaseState:render()
     
 end
