@@ -1,5 +1,5 @@
 WINDOW_WIDTH = 1200
-WINDOW_HEIGHT = 700
+WINDOW_HEIGHT = 720
 
 push = require 'push'
 Class = require 'Class'
@@ -12,7 +12,8 @@ function love.load()
     push:setupScreen(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
         vsync = true,
-        resizable = true
+        resizable = true,
+        stretched = true
     })
     --love.window.setVSync(0)
 

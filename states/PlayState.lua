@@ -15,7 +15,7 @@ function PlayState:init()
     TILE_WIDTH = 100
     TILE_HEIGHT = 100
 
-    MAPSIZE = 17
+    MAPSIZE = 17    -- default is 17
        -- increasing the mapsize will recude frames
 
     for i = 1, MAPSIZE do
@@ -138,11 +138,11 @@ function PlayState:render()
     for i = 1, MAPSIZE do
         for j = 1, MAPSIZE do
             --love.graphics.setColor(1, 0, 1)
-            --love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
-            love.graphics.setColor(1, 0, 1)
-            love.graphics.rectangle("line", self.map[i][j][1], self.map[i][j][2],TILE_WIDTH, TILE_HEIGHT)
-            love.graphics.setColor(self.map[i][j][3], self.map[i][j][3], self.map[i][j][3])
-            love.graphics.rectangle("fill", self.map[i][j][1], self.map[i][j][2], TILE_WIDTH, TILE_HEIGHT)
+            love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            -- love.graphics.setColor(1, 0, 1)
+            -- love.graphics.rectangle("line", self.map[i][j][1], self.map[i][j][2],TILE_WIDTH, TILE_HEIGHT)
+            -- love.graphics.setColor(self.map[i][j][3], self.map[i][j][3], self.map[i][j][3])
+            -- love.graphics.rectangle("fill", self.map[i][j][1], self.map[i][j][2], TILE_WIDTH, TILE_HEIGHT)
         end
     end
 
