@@ -24,6 +24,7 @@ function love.load()
     }
 
     gStateMachine:change('play')
+    math.randomseed(os.time())
 end
 
 world = wf.newWorld(0, 0, false)
@@ -31,6 +32,9 @@ world:addCollisionClass('player')
 world:addCollisionClass('enemy')
 world:addCollisionClass('bullet', {ignores = {'player'}})
 world:addCollisionClass('electricShield', {ignores = {'player'}})
+world:addCollisionClass('lavaZone', {ignores = {'player', 'enemy', 'bullet', 'lavaZone'}})
+world:addCollisionClass("arcaneRay", {ignores = {'player', 'bullet', 'arcaneRay', 'lavaZone'}})
+world:addCollisionClass('fireBall', {ignores = {'player', 'bullet', 'arcaneRay', 'lavaZone', 'fireBall'}})
 
 
 function love.resize(w, h)
@@ -48,16 +52,14 @@ end
 
 function love.update(dt)
     gStateMachine:update(dt)
-    world:update(dt)
+    
 end
 
 function love.draw()
     push:apply('start')
     gStateMachine:render()
-
-    --world:draw() does not cooperate with camera so comment the world draw to see the result
-    --world:draw()
-    --love.graphics.print(love.timer.getFPS(), 0, 0)
-    --love.graphics.print(collectgarbage("count"))
+    --world:draw() world draw should be drawn inside the camera
+    love.graphics.print(love.timer.getFPS(), 0, 0)
+    love.graphics.print(collectgarbage("count"), 100, 0)
     push:apply('end')
 end

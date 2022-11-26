@@ -61,7 +61,7 @@ end
 
 
 local function new(x,y, zoom, rot, smoother)
-	x,y  = x or love.graphics.getWidth()/2, y or love.graphics.getHeight()/2
+	x,y  = x or (1200/2), y or (720)/2
 	zoom = zoom or 1
 	rot  = rot or 0
 	smoother = smoother or camera.smooth.none() -- for locking, see below
@@ -104,7 +104,7 @@ end
 
 function camera:attach(x,y,w,h, noclip)
 	x,y = x or 0, y or 0
-	w,h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
+	w,h = w or 1200, h or 720
 
 	self._sx,self._sy,self._sw,self._sh = love.graphics.getScissor()
 	if not noclip then
@@ -145,7 +145,7 @@ end
 -- world coordinates to camera coordinates
 function camera:cameraCoords(x,y, ox,oy,w,h)
 	ox, oy = ox or 0, oy or 0
-	w,h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
+	w,h = w or 1200, h or 720
 
 	-- x,y = ((x,y) - (self.x, self.y)):rotated(self.rot) * self.scale + center
 	local c,s = cos(self.rot), sin(self.rot)
@@ -157,7 +157,7 @@ end
 -- camera coordinates to world coordinates
 function camera:worldCoords(x,y, ox,oy,w,h)
 	ox, oy = ox or 0, oy or 0
-	w,h = w or love.graphics.getWidth(), h or love.graphics.getHeight()
+	w,h = w or 1200, h or 720
 
 	-- x,y = (((x,y) - center) / self.scale):rotated(-self.rot) + (self.x,self.y)
 	local c,s = cos(-self.rot), sin(-self.rot)

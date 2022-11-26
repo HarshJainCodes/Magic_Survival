@@ -3,11 +3,19 @@ Player = Class{}
 function Player:init(x, y, width, height)
     assert(type(x) == "number", "please provide a number value for x")
     self.collider = world:newRectangleCollider(x, y, width, height)
+    self.collider:setFixedRotation(true)
+
     self.speed = 400
     self.collider:setCollisionClass('player')
+    
     self.bullets = {}
     self.currency = 0
-    self.maxCurrency = 100
+    -- default is 100
+    self.maxCurrency = 50
+    self.autoShootTimer = 0
+    self.enemyShootRange = WINDOW_HEIGHT / 2
+    self.aquiredPowerupManagers = {}
+    self.shooting_sfx = love.audio.newSource('assets/sounds/shooting_sfx.wav', "static")
 end
 
 function Player:shootEnemy(enemy)
@@ -21,6 +29,7 @@ function Player:shootEnemy(enemy)
     bullet.speed = 1000
     bullet:setCollisionClass('bullet')
     table.insert(self.bullets, bullet)
+    self.shooting_sfx:play()
 end
 
 function Player:updateBullet(dt, bullet)
@@ -52,7 +61,7 @@ function Player:autoShootEnemy(enemyTable)
     end
 
     -- only shoot if enemy is within our range
-    if minDistance < WINDOW_HEIGHT * 2 / 3 then
+    if minDistance < self.enemyShootRange then
         if targetEnemy[1] ~= nil then
             self:shootEnemy(targetEnemy[1])
         end
@@ -60,6 +69,8 @@ function Player:autoShootEnemy(enemyTable)
 end
 
 function Player:update(dt)
+    self.autoShootTimer = self.autoShootTimer + dt
+
     -- player movement
     if love.keyboard.isDown('w') then
         self.collider:setY(self.collider:getY() - math.floor(self.speed * dt))
@@ -80,18 +91,38 @@ function Player:update(dt)
 
         -- this is for the optimisation purpose, remove the bullet if it hit the enemy
         if bullet.body == nil then
-            print("bullet removed fromt the table")
             table.remove(self.bullets, key)
         end
+    end
+
+    self:updateSpawnManagers(dt)
+end
+
+function Player:updateSpawnManagers(dt)
+    for key, sm in pairs(self.aquiredPowerupManagers) do
+        sm:update(dt, {self.collider:getX(), self.collider:getY()})
+    end
+end
+
+function Player:renderSpawnManagers()
+    for key, value in pairs(self.aquiredPowerupManagers) do
+        value:render()
     end
 end
 
 function Player:render()
+    -- render the player
+    love.graphics.rectangle("fill", self.collider:getX() - 20, self.collider:getY() - 40, 40, 80)
+
+
     for key, value in pairs(self.bullets) do
         if value.body then
             love.graphics.circle("fill", value:getX(), value:getY(), 5)
+        else
+            table.remove(self.bullets, key)
         end
     end
 
-
+    self:renderSpawnManagers()
+    love.graphics.circle("line", self.collider:getX(), self.collider:getY(), self.enemyShootRange)
 end

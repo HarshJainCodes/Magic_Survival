@@ -4,20 +4,23 @@ require 'modules.player'
 require 'modules.enemy'
 require 'modules.powerups'
 require 'gui.powerUpSelect'
+require 'modules.SpawnManager'
 
 function PlayState:init()
+    --collectgarbage("stop")
     math.randomseed(os.time())
-
     self.tileImage = love.graphics.newImage('tile.jpg')
 
+    --this will store all our tiles surrounded by the players
     self.map = {}
 
     TILE_WIDTH = 100
     TILE_HEIGHT = 100
 
-    MAPSIZE = 17    -- default is 17
-       -- increasing the mapsize will recude frames
+    MAPSIZE = 13    -- default is 17
+       -- increasing the mapsize will reduce frames
 
+    --initialise our map with tiles
     for i = 1, MAPSIZE do
         local row = {}
         for j = 1, MAPSIZE do
@@ -28,33 +31,24 @@ function PlayState:init()
     end
 
     -- player
-    self.player = Player(WINDOW_WIDTH/2 - 10, WINDOW_HEIGHT/2 - 10, 20, 20)
+    self.player = Player(WINDOW_WIDTH/2 - 20, WINDOW_HEIGHT/2 - 40, 40, 80)
 
     -- enemy
     self.enemies = {}
     self.enemyTimer = 0
-    --table.insert(self.enemies, Enemy(100, 200, 30))
 
     -- camera
     camera = require 'camera'
     self.camera = camera()
 
-    -- auto shoot
-    self.autoShootTimer = 0
-
-    --self.shield = ElectricShield(self.player.collider:getX(), self.player.collider:getY(), 100)
-    self.aquiredPowerups = {}
     self.stopGame = false
 
-    
 end
 
 function PlayState:update(dt)
-    if self.player.currency >= self.player.maxCurrency then
-        self.stopGame = true
-    end
 
     if not self.stopGame then
+        world:update(dt)
         self.player:update(dt)
 
         local playerXroundedto100 = self.player.collider:getX() - 10 - ((self.player.collider:getX() - 10)  % TILE_WIDTH)
@@ -67,6 +61,7 @@ function PlayState:update(dt)
         for x = -(math.floor(MAPSIZE / 2)), math.floor(MAPSIZE / 2) do
             for y = -math.floor(MAPSIZE / 2), math.floor(MAPSIZE / 2) do
                 local noise = love.math.noise((playerXroundedto100 + x * TILE_WIDTH) * (playerYroundedto100 + y * TILE_HEIGHT) * 0.00001 + 0.0015)
+                -- print(noise)
                 self.map[x + math.ceil(MAPSIZE / 2)][y + math.ceil(MAPSIZE / 2)] = {playerXroundedto100 + x * TILE_WIDTH, playerYroundedto100 + y * TILE_HEIGHT, noise}
             end
         end
@@ -90,17 +85,20 @@ function PlayState:update(dt)
 
             -- this is for optimisation remove the enemy if it is deleted
             if value.collider.body == nil then
-                print("enemy removed from the table")
                 table.remove(self.enemies, key)
             end
         end
 
-
-        -- autoBulletShoot
-        self.autoShootTimer = self.autoShootTimer + dt
-        if self.autoShootTimer > 1 then
+        if self.player.autoShootTimer > 1 then
             self.player:autoShootEnemy(self.enemies)
-            self.autoShootTimer = 0
+            self.player.autoShootTimer = 0
+        end
+
+        if self.player.currency >= self.player.maxCurrency then
+            self.player.currency = 0
+            self.player.maxCurrency = self.player.maxCurrency * 1.2
+            self.stopGame = true
+            SelectThreeRandomPowerups()
         end
     end
     
@@ -114,31 +112,49 @@ end
 
 function PlayState:mousepressed(x, y)
     if self.stopGame then
-        if x > powerup1.x and x < powerup1.x + powerup1.width and y > powerup1.y and y < powerup1.y + powerup1.height then
-            powerupSelected = powerup1.power.name
-            self.stopGame = false
-            self.player.currency = 0
-            powerSelected = false
-        elseif x > powerup2.x and x < powerup2.x + powerup2.width and y > powerup2.y and y < powerup2.y + powerup2.height then
-            powerupSelected = powerup2.power.name
-            self.stopGame = false
-            self.player.currency = 0
-            powerSelected = false
-        elseif x > powerup3.x and powerup3.x + powerup3.width and y > powerup3.y and y < powerup3.y + powerup3.height then
-            powerupSelected = powerup3.power.name
-            self.stopGame = false
-            self.player.currency = 0
-            powerSelected = false
+        -- generate the three powerups for the player to choose
+        if x > button1.x and x < button1.x + button1.width and y > button1.y and y < button1.y + button1.height then
+            if selectedPowerups[1][2] == "FireBall" then
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[1][4](self.enemies))
+            else
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[1][4]())
+            end
+        elseif x > button2.x and x < button2.x + button2.width and y > button2.y and y < button2.y + button2.height then
+            if selectedPowerups[2][2] == "FireBall" then
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[2][4](self.enemies))
+            else
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[2][4]())
+            end
+        elseif x > button3.x and x < button3.x + button3.width and y > button3.y and y < button3.y + button3.height then
+            if selectedPowerups[3][2] == "FireBall" then
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[3][4](self.enemies))
+            else
+                table.insert(self.player.aquiredPowerupManagers, selectedPowerups[3][4]())
+            end
         end
+        self.stopGame = false
     end
 end
+
 
 function PlayState:render()
     self.camera:attach()
     for i = 1, MAPSIZE do
         for j = 1, MAPSIZE do
             --love.graphics.setColor(1, 0, 1)
-            love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            if self.map[i][j][3] > 0.7 and self.map[i][j][3] < 0.8 then
+                -- local tempRec = world:newRectangleCollider(self.map[i][j][1], self.map[i][j][2], 100, 100)
+                -- tempRec:setCollisionClass('tempClass')
+                love.graphics.setColor(1, 0, 0)
+                love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            elseif self.map[i][j][3] > 0.6 and self.map[i][j][3] < 0.7 then
+                love.graphics.setColor(0, 1, 0)
+                love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            else
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
+            end
+            --love.graphics.draw(self.tileImage, self.map[i][j][1], self.map[i][j][2], 0, TILE_WIDTH/self.tileImage:getWidth(), TILE_HEIGHT/self.tileImage:getHeight())
             -- love.graphics.setColor(1, 0, 1)
             -- love.graphics.rectangle("line", self.map[i][j][1], self.map[i][j][2],TILE_WIDTH, TILE_HEIGHT)
             -- love.graphics.setColor(self.map[i][j][3], self.map[i][j][3], self.map[i][j][3])
@@ -147,7 +163,6 @@ function PlayState:render()
     end
 
     love.graphics.setColor(0.6, 0.2, 0.8)
-    love.graphics.rectangle("fill", self.player.collider:getX() - 10, self.player.collider:getY() - 10, 20, 20)
     
     for key, enemy in pairs(self.enemies) do
         enemy:render()
@@ -155,15 +170,13 @@ function PlayState:render()
 
     self.player:render()
     -- self.shield:render()
+    world:draw()
     self.camera:detach()
+    
     love.graphics.rectangle("line", 0, 0, WINDOW_WIDTH, 30)
     love.graphics.rectangle("fill", 0, 0, (self.player.currency / self.player.maxCurrency) * WINDOW_WIDTH, 30)
 
     if self.stopGame then
         PowerUpSelectGui()
-    end
-
-    if powerupSelected ~= nil then
-        print(powerupSelected)
     end
 end
